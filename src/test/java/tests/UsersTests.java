@@ -9,13 +9,14 @@ import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Story;
 import io.restassured.response.Response;
-import models.PostRequest;
 import models.UserRequest;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Набор тестов для API пользователей WordPress (endpoint: /wp/v2/users).
@@ -117,18 +118,37 @@ public class UsersTests {
 
         checks.checkEquals(dbService.isUserExists(id), true, "Пользователь должен существовать до удаления");
 
-        PostRequest postRequest = new PostRequest("Test Post", "Content", "publish");
-        String postBody = "{\"title\":\"Test Post\",\"content\":\"Content\",\"status\":\"publish\",\"author\":" + id + "}";
-        Response postResponse = postsClient.createPostRaw(postBody, AuthType.ADMIN);
-        checks.checkStatusCode(postResponse, 201);
+        int postsCount = 3;
+        List<Integer> postIds = new ArrayList<>();
+        for (int i = 0; i < postsCount; i++) {
+            String postBody = String.format(
+                    "{\"title\":\"Test Post %d\",\"content\":\"Content %d\",\"status\":\"publish\",\"author\":%d}",
+                    i, i, id);
+            Response postResponse = postsClient.createPostRaw(postBody, AuthType.ADMIN);
+            checks.checkStatusCode(postResponse, 201);
+            postIds.add(postResponse.jsonPath().getInt("id"));
+        }
 
-        Response response = usersClient.deleteUser(id, 1, AuthType.ADMIN);
+        int reassignToId = 1;
+        int adminPostsBefore = dbService.getPostsCountByAuthor(reassignToId);
+
+        Response response = usersClient.deleteUser(id, reassignToId, AuthType.ADMIN);
 
         checks.checkStatusCode(response, 200);
         checks.checkDeletedTrue(response);
         checks.checkEquals(dbService.isUserExists(id), false, "Пользователь не должен существовать после удаления");
 
-        checks.checkTrue(dbService.arePostsReassigned(id, 1), "Посты должны быть переназначены");
+        checks.checkEquals(dbService.getPostsCountByAuthor(id), 0,
+                "У удаленного пользователя не должно быть постов");
+
+        int adminPostsAfter = dbService.getPostsCountByAuthor(reassignToId);
+        checks.checkEquals(adminPostsAfter, adminPostsBefore + postsCount,
+                "Посты должны быть переназначены администратору");
+
+        for (int postId : postIds) {
+            checks.checkEquals(dbService.getPostAuthorId(postId), reassignToId,
+                    "Пост " + postId + " должен принадлежать новому автору");
+        }
 
         createdUserId = -1;
     }

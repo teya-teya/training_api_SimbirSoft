@@ -64,8 +64,8 @@ public class UserDbService {
         }
     }
 
-    @Step("Проверка, что посты пользователя {oldAuthorId} переназначены")
-    public boolean arePostsReassigned(int oldAuthorId, int newAuthorId) throws SQLException {
+    @Step("Проверка, что посты пользователя {oldAuthorId} переназначены пользователю {newAuthorId}")
+    public boolean arePostsReassignedTo(int oldAuthorId, int newAuthorId) throws SQLException {
         String sql = "SELECT COUNT(*) FROM wp_posts WHERE post_author = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -76,8 +76,32 @@ public class UserDbService {
                 return count == 0;
             }
         } catch (SQLException e) {
-            log.error("Ошибка проверки переназначения постов", e);
+            log.error("Ошибка проверки переназначения постов от {} к {}", oldAuthorId, newAuthorId, e);
             throw e;
+        }
+    }
+
+    @Step("Получение количества постов у автора {authorId}")
+    public int getPostsCountByAuthor(int authorId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM wp_posts WHERE post_author = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, authorId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    @Step("Получение автора поста {postId}")
+    public int getPostAuthorId(int postId) throws SQLException {
+        String sql = "SELECT post_author FROM wp_posts WHERE ID = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, postId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() ? rs.getInt("post_author") : -1;
+            }
         }
     }
 

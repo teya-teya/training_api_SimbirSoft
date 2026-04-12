@@ -53,8 +53,8 @@ public class Checks {
 
     @Step("Проверка, что deleted = true")
     public void checkDeletedTrue(Response response) {
-        Boolean deleted = response.jsonPath().getBoolean("deleted");
-        Assert.assertTrue(deleted != null && deleted, "Поле 'deleted' не равно true. Фактическое значение: " + deleted);
+        boolean deleted = response.jsonPath().getBoolean("deleted");
+        Assert.assertTrue(deleted, "Поле 'deleted' не равно true. Фактическое значение: " + deleted);
     }
 
     // ========== УНИВЕРСАЛЬНЫЕ ПРОВЕРКИ (для БД и любых объектов) ==========
