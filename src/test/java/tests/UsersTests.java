@@ -15,7 +15,6 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -37,7 +36,7 @@ public class UsersTests {
         createdUserId = -1;
     }
 
-    @AfterMethod
+    @AfterMethod(groups = {"needsCleanup"})
     public void cleanUp() throws SQLException {
         if (createdUserId != -1 && dbService.isUserExists(createdUserId)) {
             dbService.deleteUserHard(createdUserId);
@@ -46,7 +45,7 @@ public class UsersTests {
 
     // ========== ПОЗИТИВНЫЕ ТЕСТЫ ==========
 
-    @Test(description = "TC-USER-01: Создание нового пользователя (минимальные поля)")
+    @Test(description = "TC-USER-01: Создание нового пользователя (минимальные поля)", groups = {"needsCleanup"})
     @Story("Создание пользователя")
     public void tcUser01_createUserMinimalFields() throws SQLException {
         UserRequest request = new UserRequest("testuser", "test@example.com", "Test123!", null, null);
@@ -66,7 +65,7 @@ public class UsersTests {
         checks.checkEquals(dbService.getUserEmail(id), request.getEmail(), "Email в БД");
     }
 
-    @Test(description = "TC-USER-02: Получение другого пользователя по ID")
+    @Test(description = "TC-USER-02: Получение другого пользователя по ID", groups = {"needsCleanup"})
     @Story("Получение пользователей")
     public void tcUser02_getUserById() throws SQLException {
         UserRequest createRequest = new UserRequest("testuser_get", "testget@example.com", "Test123!", null, null);
@@ -85,7 +84,7 @@ public class UsersTests {
         checks.checkEquals(dbService.getUserEmail(id), createRequest.getEmail(), "Email в БД");
     }
 
-    @Test(description = "TC-USER-03: Обновление email пользователя")
+    @Test(description = "TC-USER-03: Обновление email пользователя", groups = {"needsCleanup"})
     @Story("Обновление пользователя")
     public void tcUser03_updateUserEmail() throws SQLException {
         UserRequest createRequest = new UserRequest("testuser_update", "old@example.com", "Test123!", null, null);
@@ -105,8 +104,7 @@ public class UsersTests {
         checks.checkEquals(dbService.getUserEmail(id), "newemail@example.com", "Email в БД");
     }
 
-    @Test(description = "TC-USER-04: Удаление пользователя с reassign")
-    @Story("Удаление пользователя")
+    @Test(description = "TC-USER-04: Удаление пользователя с reassign", groups = {"needsCleanup"})
     public void tcUser04_deleteUserWithReassign() throws SQLException {
         UserRequest request = new UserRequest("usertodelete", "delete@example.com", "Test123!", null, null);
 
@@ -116,41 +114,73 @@ public class UsersTests {
         int id = createResponse.jsonPath().getInt("id");
         createdUserId = id;
 
-        checks.checkEquals(dbService.isUserExists(id), true, "Пользователь должен существовать до удаления");
-
-        int postsCount = 3;
-        List<Integer> postIds = new ArrayList<>();
-        for (int i = 0; i < postsCount; i++) {
-            String postBody = String.format(
-                    "{\"title\":\"Test Post %d\",\"content\":\"Content %d\",\"status\":\"publish\",\"author\":%d}",
-                    i, i, id);
-            Response postResponse = postsClient.createPostRaw(postBody, AuthType.ADMIN);
-            checks.checkStatusCode(postResponse, 201);
-            postIds.add(postResponse.jsonPath().getInt("id"));
-        }
-
-        int reassignToId = 1;
-        int adminPostsBefore = dbService.getPostsCountByAuthor(reassignToId);
-
-        Response response = usersClient.deleteUser(id, reassignToId, AuthType.ADMIN);
+        Response response = usersClient.deleteUser(id, 1, AuthType.ADMIN);
 
         checks.checkStatusCode(response, 200);
         checks.checkDeletedTrue(response);
-        checks.checkEquals(dbService.isUserExists(id), false, "Пользователь не должен существовать после удаления");
+        checks.checkFalse(dbService.isUserExists(id), "Пользователь должен быть удален");
+    }
 
-        checks.checkEquals(dbService.getPostsCountByAuthor(id), 0,
-                "У удаленного пользователя не должно быть постов");
+    @Test(description = "TC-USER-05: У удаленного пользователя нет постов", groups = {"needsCleanup"})
+    public void tcUser05_postsRemovedFromDeletedUser() throws SQLException {
+        UserRequest request = new UserRequest("userposts", "posts@example.com", "Test123!", null, null);
 
-        int adminPostsAfter = dbService.getPostsCountByAuthor(reassignToId);
-        checks.checkEquals(adminPostsAfter, adminPostsBefore + postsCount,
-                "Посты должны быть переназначены администратору");
+        Response createResponse = usersClient.createUser(request, AuthType.ADMIN);
+        checks.checkStatusCode(createResponse, 201);
+
+        int userId = createResponse.jsonPath().getInt("id");
+        createdUserId = userId;
+
+        postsClient.createPostsForUser(userId, 3);
+
+        usersClient.deleteUser(userId, 1, AuthType.ADMIN);
+
+        checks.checkEquals(dbService.getPostsCountByAuthor(userId), 0, "У удаленного пользователя не должно быть постов");
+    }
+
+    @Test(description = "TC-USER-06: Посты переназначены новому автору", groups = {"needsCleanup"})
+    public void tcUser06_postsReassigned() throws SQLException {
+        UserRequest request = new UserRequest("userreassign", "reassign@example.com", "Test123!", null, null);
+
+        Response createResponse = usersClient.createUser(request, AuthType.ADMIN);
+        checks.checkStatusCode(createResponse, 201);
+
+        int userId = createResponse.jsonPath().getInt("id");
+        createdUserId = userId;
+
+        int postsCount = 3;
+        postsClient.createPostsForUser(userId, postsCount);
+
+        int reassignToId = 1;
+        int before = dbService.getPostsCountByAuthor(reassignToId);
+
+        usersClient.deleteUser(userId, reassignToId, AuthType.ADMIN);
+
+        int after = dbService.getPostsCountByAuthor(reassignToId);
+
+        checks.checkEquals(after, before + postsCount, "Посты должны перейти новому автору");
+    }
+
+    @Test(description = "TC-USER-07: У каждого поста обновился автор", groups = {"needsCleanup"})
+    public void tcUser07_eachPostHasNewAuthor() throws SQLException {
+        UserRequest request = new UserRequest("usercheckposts", "check@example.com", "Test123!", null, null);
+
+        Response createResponse = usersClient.createUser(request, AuthType.ADMIN);
+        checks.checkStatusCode(createResponse, 201);
+
+        int userId = createResponse.jsonPath().getInt("id");
+        createdUserId = userId;
+
+        List<Integer> postIds = postsClient.createPostsForUser(userId, 3);
+
+        int reassignToId = 1;
+
+        usersClient.deleteUser(userId, reassignToId, AuthType.ADMIN);
 
         for (int postId : postIds) {
             checks.checkEquals(dbService.getPostAuthorId(postId), reassignToId,
                     "Пост " + postId + " должен принадлежать новому автору");
         }
-
-        createdUserId = -1;
     }
 
     // ========== НЕГАТИВНЫЕ ТЕСТЫ ==========

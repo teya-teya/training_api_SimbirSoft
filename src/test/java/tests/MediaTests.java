@@ -4,6 +4,7 @@ import api.BaseApi.AuthType;
 import checks.Checks;
 import client.MediaClient;
 import db.MediaDbService;
+import helpers.FileHelper;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Story;
@@ -36,7 +37,7 @@ public class MediaTests {
         createdMediaId = -1;
     }
 
-    @AfterMethod
+    @AfterMethod(groups = {"needsCleanup"})
     public void cleanUp() throws SQLException {
         if (createdMediaId != -1 && dbService.isMediaExists(createdMediaId)) {
             dbService.deleteMediaHard(createdMediaId);
@@ -45,15 +46,12 @@ public class MediaTests {
 
     // ========== ПОЗИТИВНЫЕ ТЕСТЫ ==========
 
-    @Test(description = "TC-MEDIA-01: Загрузка изображения (multipart)")
+    @Test(description = "TC-MEDIA-01: Загрузка изображения (multipart)", groups = {"needsCleanup"})
     @Story("Загрузка медиафайла")
     public void tcMedia01_uploadImage() throws SQLException {
-        File testImage = new File(TEST_IMAGE_PATH);
-        if (!testImage.exists()) {
-            throw new RuntimeException("Тестовое изображение не найдено: " + TEST_IMAGE_PATH);
-        }
+        File file = FileHelper.getTestFile(TEST_IMAGE_PATH);
 
-        Response response = mediaClient.uploadMedia(TEST_IMAGE_PATH, AuthType.ADMIN);
+        Response response = mediaClient.uploadMedia(file, AuthType.ADMIN);
 
         checks.checkStatusCode(response, 201);
         checks.checkJsonFieldNotNull(response, "id");
@@ -68,15 +66,12 @@ public class MediaTests {
         checks.checkTrue(dbService.getMimeType(id).startsWith("image/"), "MIME тип должен начинаться с image/");
     }
 
-    @Test(description = "TC-MEDIA-02: Получение информации о медиафайле по ID")
+    @Test(description = "TC-MEDIA-02: Получение информации о медиафайле по ID", groups = {"needsCleanup"})
     @Story("Получение медиафайла")
     public void tcMedia02_getMediaById() throws SQLException {
-        File testImage = new File(TEST_IMAGE_PATH);
-        if (!testImage.exists()) {
-            throw new RuntimeException("Тестовое изображение не найдено: " + TEST_IMAGE_PATH);
-        }
+        File file = FileHelper.getTestFile(TEST_IMAGE_PATH);
 
-        Response createResponse = mediaClient.uploadMedia(TEST_IMAGE_PATH, AuthType.ADMIN);
+        Response createResponse = mediaClient.uploadMedia(file, AuthType.ADMIN);
         checks.checkStatusCode(createResponse, 201);
         int id = createResponse.jsonPath().getInt("id");
         createdMediaId = id;
@@ -92,15 +87,12 @@ public class MediaTests {
         checks.checkEquals(dbService.getMimeType(id), expectedMimeType, "MIME тип в БД должен совпадать");
     }
 
-    @Test(description = "TC-MEDIA-03: Обновление alt_text у изображения")
+    @Test(description = "TC-MEDIA-03: Обновление alt_text у изображения", groups = {"needsCleanup"})
     @Story("Обновление медиафайла")
     public void tcMedia03_updateAltText() throws SQLException {
-        File testImage = new File(TEST_IMAGE_PATH);
-        if (!testImage.exists()) {
-            throw new RuntimeException("Тестовое изображение не найдено: " + TEST_IMAGE_PATH);
-        }
+        File file = FileHelper.getTestFile(TEST_IMAGE_PATH);
 
-        Response createResponse = mediaClient.uploadMedia(TEST_IMAGE_PATH, AuthType.ADMIN);
+        Response createResponse = mediaClient.uploadMedia(file, AuthType.ADMIN);
         checks.checkStatusCode(createResponse, 201);
         int id = createResponse.jsonPath().getInt("id");
         createdMediaId = id;
@@ -113,15 +105,12 @@ public class MediaTests {
         checks.checkEquals(dbService.getAltText(id), "New alt text", "alt_text в БД должен обновиться");
     }
 
-    @Test(description = "TC-MEDIA-04: Обновление заголовка (title) медиафайла")
+    @Test(description = "TC-MEDIA-04: Обновление заголовка (title) медиафайла", groups = {"needsCleanup"})
     @Story("Обновление медиафайла")
     public void tcMedia04_updateTitle() throws SQLException {
-        File testImage = new File(TEST_IMAGE_PATH);
-        if (!testImage.exists()) {
-            throw new RuntimeException("Тестовое изображение не найдено: " + TEST_IMAGE_PATH);
-        }
+        File file = FileHelper.getTestFile(TEST_IMAGE_PATH);
 
-        Response createResponse = mediaClient.uploadMedia(TEST_IMAGE_PATH, AuthType.ADMIN);
+        Response createResponse = mediaClient.uploadMedia(file, AuthType.ADMIN);
         checks.checkStatusCode(createResponse, 201);
         int id = createResponse.jsonPath().getInt("id");
         createdMediaId = id;
@@ -137,15 +126,11 @@ public class MediaTests {
     @Test(description = "TC-MEDIA-05: Удаление медиафайла (force=true)")
     @Story("Удаление медиафайла")
     public void tcMedia05_deleteMedia() throws SQLException {
-        File testImage = new File(TEST_IMAGE_PATH);
-        if (!testImage.exists()) {
-            throw new RuntimeException("Тестовое изображение не найдено: " + TEST_IMAGE_PATH);
-        }
+        File file = FileHelper.getTestFile(TEST_IMAGE_PATH);
 
-        Response createResponse = mediaClient.uploadMedia(TEST_IMAGE_PATH, AuthType.ADMIN);
+        Response createResponse = mediaClient.uploadMedia(file, AuthType.ADMIN);
         checks.checkStatusCode(createResponse, 201);
         int id = createResponse.jsonPath().getInt("id");
-        createdMediaId = id;
 
         checks.checkEquals(dbService.isMediaExists(id), true, "Медиафайл должен существовать до удаления");
 
@@ -155,7 +140,6 @@ public class MediaTests {
         checks.checkDeletedTrue(response);
 
         checks.checkEquals(dbService.isMediaExists(id), false, "Медиафайл не должен существовать после удаления");
-        createdMediaId = -1;
     }
 
     // ========== НЕГАТИВНЫЕ ТЕСТЫ ==========
@@ -171,12 +155,9 @@ public class MediaTests {
     @Test(description = "TC-MEDIA-N02: Загрузка неавторизованным пользователем")
     @Story("Авторизация")
     public void tcMediaN02_uploadUnauthorized() {
-        File testImage = new File(TEST_IMAGE_PATH);
-        if (!testImage.exists()) {
-            throw new RuntimeException("Тестовое изображение не найдено: " + TEST_IMAGE_PATH);
-        }
+        File file = FileHelper.getTestFile(TEST_IMAGE_PATH);
 
-        Response response = mediaClient.uploadMedia(TEST_IMAGE_PATH, AuthType.NONE);
+        Response response = mediaClient.uploadMedia(file, AuthType.NONE);
 
         checks.checkStatusCode(response, 401);
     }
@@ -184,12 +165,9 @@ public class MediaTests {
     @Test(description = "TC-MEDIA-N03: Загрузка файла недопустимого типа (.exe)")
     @Story("Загрузка медиафайла")
     public void tcMediaN03_uploadInvalidFileType() {
-        File invalidFile = new File(TEST_EXE_PATH);
-        if (!invalidFile.exists()) {
-            throw new RuntimeException("Тестовый .exe файл не найден: " + TEST_EXE_PATH);
-        }
+        File file = FileHelper.getTestFile(TEST_EXE_PATH);
 
-        Response response = mediaClient.uploadMedia(TEST_EXE_PATH, AuthType.ADMIN);
+        Response response = mediaClient.uploadMedia(file, AuthType.ADMIN);
 
         checks.checkStatusCode(response, 415);
     }

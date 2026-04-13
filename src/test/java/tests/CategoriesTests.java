@@ -33,7 +33,7 @@ public class CategoriesTests {
         createdId = -1;
     }
 
-    @AfterMethod
+    @AfterMethod(groups = {"needsCleanup"})
     public void cleanUp() throws SQLException {
         if (createdId != -1 && db.isCategoryExists(createdId)) {
             db.deleteCategoryHard(createdId);
@@ -42,7 +42,7 @@ public class CategoriesTests {
 
     // ========== ПОЗИТИВНЫЕ ТЕСТЫ ==========
 
-    @Test(description = "TC-CAT-01: Создание рубрики с обязательным полем name")
+    @Test(description = "TC-CAT-01: Создание рубрики с обязательным полем name", groups = {"needsCleanup"})
     @Story("Создание рубрики")
     public void tcCat01_createCategoryMinimalFields() throws SQLException {
         CategoryRequest request = new CategoryRequest("Test Category", null, null);
@@ -61,7 +61,7 @@ public class CategoriesTests {
         checks.checkEquals(db.getCategoryName(id), request.getName(), "Имя рубрики в БД");
     }
 
-    @Test(description = "TC-CAT-02: Получение списка рубрик (GET)")
+    @Test(description = "TC-CAT-02: Получение списка рубрик (GET)", groups = {"needsCleanup"})
     @Story("Получение рубрик")
     public void tcCat02_getCategoriesList() throws SQLException {
         CategoryRequest testRequest = new CategoryRequest("List Test Category", null, null);
@@ -80,7 +80,7 @@ public class CategoriesTests {
         checks.checkEquals(responseCount, dbCount, "Количество рубрик в ответе и БД");
     }
 
-    @Test(description = "TC-CAT-03: Получение рубрики по ID")
+    @Test(description = "TC-CAT-03: Получение рубрики по ID", groups = {"needsCleanup"})
     @Story("Получение рубрик")
     public void tcCat03_getCategoryById() throws SQLException {
         CategoryRequest createRequest = new CategoryRequest("Test Category for Get", null, null);
@@ -98,7 +98,7 @@ public class CategoriesTests {
         checks.checkEquals(db.getCategoryName(id), createRequest.getName(), "Имя рубрики в БД");
     }
 
-    @Test(description = "TC-CAT-04: Обновление имени рубрики")
+    @Test(description = "TC-CAT-04: Обновление имени рубрики", groups = {"needsCleanup"})
     @Story("Обновление рубрики")
     public void tcCat04_updateCategoryName() throws SQLException {
         CategoryRequest createRequest = new CategoryRequest("Original Name", null, null);
@@ -133,7 +133,6 @@ public class CategoriesTests {
         checks.checkDeletedTrue(response);
 
         checks.checkFalse(db.isCategoryExists(createdId), "Рубрика не должна существовать после удаления");
-        createdId = -1;
     }
 
     // ========== НЕГАТИВНЫЕ ТЕСТЫ ==========

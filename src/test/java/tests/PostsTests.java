@@ -10,7 +10,6 @@ import io.qameta.allure.Story;
 import io.restassured.response.Response;
 import models.PostRequest;
 import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -34,13 +33,7 @@ public class PostsTests {
         createdPostId = -1;
     }
 
-    @BeforeClass
-    public void cleanDatabase() throws SQLException {
-        PostDbService dbService = new PostDbService();
-        dbService.deleteAllTestPosts();
-    }
-
-    @AfterMethod
+    @AfterMethod(groups = {"needsCleanup"})
     public void cleanUp() throws SQLException {
         if (createdPostId != -1 && dbService.isPostExists(createdPostId)) {
             dbService.deletePostHard(createdPostId);
@@ -49,7 +42,7 @@ public class PostsTests {
 
     // ========== ПОЗИТИВНЫЕ ТЕСТЫ ==========
 
-    @Test(description = "TC-POST-01: Создание записи с минимальными полями")
+    @Test(description = "TC-POST-01: Создание записи с минимальными полями", groups = {"needsCleanup"})
     @Story("Создание записи")
     public void tcPost01_createPostMinimalFields() throws SQLException {
         PostRequest request = new PostRequest("Test Post", "Test content", "draft");
@@ -71,7 +64,7 @@ public class PostsTests {
         checks.checkEquals(dbService.getPostType(id), "post", "Тип записи в БД");
     }
 
-    @Test(description = "TC-POST-02: Получение списка записей (GET)")
+    @Test(description = "TC-POST-02: Получение списка записей (GET)", groups = {"needsCleanup"})
     @Story("Получение записей")
     public void tcPost02_getPostsList() throws SQLException {
         PostRequest testRequest = new PostRequest("List Test Post", "Content for list test", "publish");
@@ -90,7 +83,7 @@ public class PostsTests {
         checks.checkEquals(responseCount, dbCount, "Количество записей в ответе и БД");
     }
 
-    @Test(description = "TC-POST-03: Получение одной записи по ID")
+    @Test(description = "TC-POST-03: Получение одной записи по ID", groups = {"needsCleanup"})
     @Story("Получение записей")
     public void tcPost03_getPostById() throws SQLException {
         PostRequest request = new PostRequest("Test Post for Get", "Content for get", "publish");
@@ -111,7 +104,7 @@ public class PostsTests {
         checks.checkEquals(dbService.getPostContent(id), request.getContent(), "Содержимое в БД");
     }
 
-    @Test(description = "TC-POST-04: Обновление заголовка записи")
+    @Test(description = "TC-POST-04: Обновление заголовка записи", groups = {"needsCleanup"})
     @Story("Обновление записи")
     public void tcPost04_updatePostTitle() throws SQLException {
         PostRequest createRequest = new PostRequest("Original Title", "Original content", "draft");
@@ -155,13 +148,11 @@ public class PostsTests {
         checks.checkStatusCode(response, 200);
         checks.checkDeletedTrue(response);
         checks.checkEquals(dbService.isPostExists(createdPostId), false, "Запись не должна существовать после удаления");
-
-        createdPostId = -1;
     }
 
     // ========== НЕГАТИВНЫЕ ТЕСТЫ ==========
 
-    @Test(description = "TC-POST-N01: Создание записи без заголовка")
+    @Test(description = "TC-POST-N01: Создание записи без заголовка", groups = {"needsCleanup"})
     @Story("Создание записи")
     public void tcPostN01_createPostWithoutTitle() throws SQLException {
         PostRequest request = new PostRequest();
@@ -218,9 +209,6 @@ public class PostsTests {
         checks.checkStatusCode(response, 404);
     }
 
-    /**
-     * ВНИМАНИЕ: требует существования пользователя subscriber_user / subscriber_pass
-     */
     @Test(description = "TC-POST-N06: Создание поста без прав")
     @Story("Авторизация")
     public void tcPostN06_createPostWithoutRights() {
@@ -231,10 +219,7 @@ public class PostsTests {
         checks.checkStatusCode(response, 403);
     }
 
-    /**
-     * ВНИМАНИЕ: требует существования пользователя subscriber_user / subscriber_pass
-     */
-    @Test(description = "TC-POST-N07: Удаление чужого поста")
+    @Test(description = "TC-POST-N07: Удаление чужого поста", groups = {"needsCleanup"})
     @Story("Авторизация")
     public void tcPostN07_deleteSomeoneElsePost() throws SQLException {
         PostRequest request = new PostRequest("Admin Post", "Created by admin", "draft");
@@ -251,8 +236,5 @@ public class PostsTests {
 
         checks.checkStatusCode(response, 403);
         checks.checkEquals(dbService.isPostExists(id), true, "Запись должна остаться в БД");
-
-        postsClient.deletePost(id, AuthType.ADMIN);
-        createdPostId = -1;
     }
 }

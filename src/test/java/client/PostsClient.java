@@ -1,16 +1,21 @@
 package client;
 
 import api.BaseApi;
+import checks.Checks;
 import io.qameta.allure.Step;
 import io.restassured.response.Response;
 import lombok.extern.slf4j.Slf4j;
 import models.PostRequest;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Клиент для работы с API записей WordPress (endpoint: /wp/v2/posts)
  */
 @Slf4j
 public class PostsClient extends BaseApi {
+    Checks checks = new Checks();
 
     @Override
     protected String getBasePath() {
@@ -74,5 +79,23 @@ public class PostsClient extends BaseApi {
         Integer id = response.jsonPath().get("id");
         log.info("Создание записи с автором: статус={}, id={}", response.statusCode(), id != null ? id : "null");
         return response;
+    }
+
+    @Step("Создание  {count} записей с указанием автора (raw JSON)")
+    public List<Integer> createPostsForUser(int userId, int count) {
+        List<Integer> postIds = new ArrayList<>();
+
+        for (int i = 0; i < count; i++) {
+            String postBody = String.format(
+                    "{\"title\":\"Test Post %d\",\"content\":\"Content %d\",\"status\":\"publish\",\"author\":%d}",
+                    i, i, userId);
+
+            Response response = createPostRaw(postBody, AuthType.ADMIN);
+            checks.checkStatusCode(response, 201);
+
+            postIds.add(response.jsonPath().getInt("id"));
+        }
+
+        return postIds;
     }
 }
