@@ -14,7 +14,9 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import javax.script.ScriptEngine;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -29,16 +31,17 @@ public class UsersTests {
     UserDbService dbService = new UserDbService();
     Checks checks = new Checks();
 
-    private int createdUserId = -1;
-
-    @BeforeMethod
-    public void setUp() {
-        createdUserId = -1;
-    }
+    private int createdUserId;
+    private List<Integer> postIds = new ArrayList<>();
 
     @AfterMethod(groups = {"needsCleanup"})
     public void cleanUp() throws SQLException {
         dbService.deleteUserHard(createdUserId);
+        if (!postIds.isEmpty()) {
+            for (int postId : postIds) {
+                postsClient.deletePost(postId, AuthType.ADMIN);
+            }
+        }
     }
 
     // ========== ПОЗИТИВНЫЕ ТЕСТЫ ==========
@@ -129,7 +132,7 @@ public class UsersTests {
         int userId = createResponse.jsonPath().getInt("id");
         createdUserId = userId;
 
-        postsClient.createPostsForUser(userId, 3);
+        postIds = postsClient.createPostsForUser(userId, 3);
 
         usersClient.deleteUser(userId, 1, AuthType.ADMIN);
 
@@ -147,7 +150,7 @@ public class UsersTests {
         createdUserId = userId;
 
         int postsCount = 3;
-        postsClient.createPostsForUser(userId, postsCount);
+        postIds = postsClient.createPostsForUser(userId, postsCount);
 
         int reassignToId = 1;
         int before = dbService.getPostsCountByAuthor(reassignToId);
@@ -169,7 +172,7 @@ public class UsersTests {
         int userId = createResponse.jsonPath().getInt("id");
         createdUserId = userId;
 
-        List<Integer> postIds = postsClient.createPostsForUser(userId, 3);
+        postIds = postsClient.createPostsForUser(userId, 3);
 
         int reassignToId = 1;
 
