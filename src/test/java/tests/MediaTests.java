@@ -39,9 +39,7 @@ public class MediaTests {
 
     @AfterMethod(groups = {"needsCleanup"})
     public void cleanUp() throws SQLException {
-        if (createdMediaId != -1 && dbService.isMediaExists(createdMediaId)) {
-            dbService.deleteMediaHard(createdMediaId);
-        }
+        dbService.deleteMediaHard(createdMediaId);
     }
 
     // ========== ПОЗИТИВНЫЕ ТЕСТЫ ==========

@@ -35,9 +35,7 @@ public class PostsTests {
 
     @AfterMethod(groups = {"needsCleanup"})
     public void cleanUp() throws SQLException {
-        if (createdPostId != -1 && dbService.isPostExists(createdPostId)) {
-            dbService.deletePostHard(createdPostId);
-        }
+        dbService.deletePostHard(createdPostId);
     }
 
     // ========== ПОЗИТИВНЫЕ ТЕСТЫ ==========

@@ -35,9 +35,7 @@ public class CategoriesTests {
 
     @AfterMethod(groups = {"needsCleanup"})
     public void cleanUp() throws SQLException {
-        if (createdId != -1 && db.isCategoryExists(createdId)) {
-            db.deleteCategoryHard(createdId);
-        }
+        db.deleteCategoryHard(createdId);
     }
 
     // ========== ПОЗИТИВНЫЕ ТЕСТЫ ==========

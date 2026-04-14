@@ -38,9 +38,7 @@ public class UsersTests {
 
     @AfterMethod(groups = {"needsCleanup"})
     public void cleanUp() throws SQLException {
-        if (createdUserId != -1 && dbService.isUserExists(createdUserId)) {
-            dbService.deleteUserHard(createdUserId);
-        }
+        dbService.deleteUserHard(createdUserId);
     }
 
     // ========== ПОЗИТИВНЫЕ ТЕСТЫ ==========
