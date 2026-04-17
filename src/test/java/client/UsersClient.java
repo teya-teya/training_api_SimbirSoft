@@ -73,4 +73,23 @@ public class UsersClient extends BaseApi {
         log.info("Удаление пользователя ID={} без reassign: статус={}", id, response.statusCode());
         return response;
     }
+
+    @Step("Получение списка пользователей")
+    public Response getUsers(AuthType authType, String... credentials) {
+        Response response = getRequest(authType, credentials)
+                .get();
+
+        log.info("Получение списка пользователей: статус={}, количество={}", response.statusCode(), response.jsonPath().getList("").size());
+        return response;
+    }
+
+    @Step("Получение пользователей по slug: {slug}")
+    public Response getUsersBySlug(String slug, AuthType authType, String... credentials) {
+        Response response = getRequest(authType, credentials)
+                .queryParam("slug", slug)
+                .get();
+
+        log.info("Получение пользователей по slug={}: статус={}", slug, response.statusCode());
+        return response;
+    }
 }

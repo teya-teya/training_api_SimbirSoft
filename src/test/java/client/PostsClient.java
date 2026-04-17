@@ -1,21 +1,16 @@
 package client;
 
 import api.BaseApi;
-import checks.Checks;
 import io.qameta.allure.Step;
 import io.restassured.response.Response;
 import lombok.extern.slf4j.Slf4j;
 import models.PostRequest;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Клиент для работы с API записей WordPress (endpoint: /wp/v2/posts)
  */
 @Slf4j
 public class PostsClient extends BaseApi {
-    Checks checks = new Checks();
 
     @Override
     protected String getBasePath() {
@@ -81,21 +76,23 @@ public class PostsClient extends BaseApi {
         return response;
     }
 
-    @Step("Создание  {count} записей с указанием автора (raw JSON)")
-    public List<Integer> createPostsForUser(int userId, int count) {
-        List<Integer> postIds = new ArrayList<>();
+    @Step("Получение записей по статусу: {status}")
+    public Response getPostsByStatus(String status, AuthType authType, String... credentials) {
+        Response response = getRequest(authType, credentials)
+                .queryParam("status", status)
+                .get();
 
-        for (int i = 0; i < count; i++) {
-            String postBody = String.format(
-                    "{\"title\":\"Test Post %d\",\"content\":\"Content %d\",\"status\":\"publish\",\"author\":%d}",
-                    i, i, userId);
+        log.info("Получение записей по статусу={}: статус={}, количество={}", status, response.statusCode(), response.jsonPath().getList("").size());
+        return response;
+    }
 
-            Response response = createPostRaw(postBody, AuthType.ADMIN);
-            checks.checkStatusCode(response, 201);
+    @Step("Получение записей по автору: {authorId}")
+    public Response getPostsByAuthor(int authorId, AuthType authType, String... credentials) {
+        Response response = getRequest(authType, credentials)
+                .queryParam("author", authorId)
+                .get();
 
-            postIds.add(response.jsonPath().getInt("id"));
-        }
-
-        return postIds;
+        log.info("Получение записей по автору={}: статус={}, количество={}", authorId, response.statusCode(), response.jsonPath().getList("").size());
+        return response;
     }
 }

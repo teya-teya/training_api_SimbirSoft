@@ -19,7 +19,7 @@ public class MediaClient extends BaseApi {
         return "wp-json/wp/v2/media";
     }
 
-    @Step("Загрузка изображения: {file.name}")
+    @Step("Загрузка изображения")
     public Response uploadMedia(File file, AuthType authType, String... credentials) {
         Response response = getRequest(authType, credentials)
                 .contentType("multipart/form-data")
