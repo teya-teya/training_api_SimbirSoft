@@ -39,11 +39,6 @@ public class PostDbService {
         return postDao.getField(id, "post_type");
     }
 
-    @Step("Получение количества постов")
-    public int getPostsCount() {
-        return postDao.countAll();
-    }
-
     @Step("Создание тестового поста")
     public int createTestPost(String title, String content, String status) {
         return postDao.create(title, content, status);
