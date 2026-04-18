@@ -1,10 +1,8 @@
 package db.dao;
 
 import db.core.DbExecutor;
-import helpers.TestDataGenerator;
 
 import java.sql.ResultSet;
-import java.util.Random;
 
 /**
  * DAO для работы с пользователями WordPress (таблица wp_users).

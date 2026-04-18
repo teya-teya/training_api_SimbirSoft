@@ -6,7 +6,6 @@ import client.MediaClient;
 import db.service.MediaDbService;
 import enums.TestDataTemplates;
 import helpers.FileHelper;
-import helpers.TestDataGenerator;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Story;

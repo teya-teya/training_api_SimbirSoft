@@ -1,6 +1,5 @@
 package checks;
 
-import api.BaseApi;
 import io.qameta.allure.Step;
 import io.restassured.response.Response;
 import org.testng.Assert;
