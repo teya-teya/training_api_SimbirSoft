@@ -1,9 +1,11 @@
 package db.service;
 
 import db.dao.CategoryDao;
+import enums.TestDataTemplates;
 import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -16,7 +18,7 @@ public class CategoryDbService {
 
     @Step("Проверка существования рубрики в БД по ID: {id}")
     public boolean isCategoryExists(int id) {
-        return categoryDao.exists(id);
+        return categoryDao.categoryExists(id);
     }
 
     @Step("Получение имени рубрики из БД по ID: {id}")
@@ -37,6 +39,18 @@ public class CategoryDbService {
     @Step("Создание тестовой рубрики в БД")
     public int createTestCategory(String name, String slug) {
         return categoryDao.create(name, slug);
+    }
+
+    @Step("Создание {count} тестовых рубрик")
+    public List<Integer> createTestCategories(int count) {
+        List<Integer> categoriesIds = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            String name = i + "_" + TestDataTemplates.CATEGORY_NAME.getUniqueValue();
+            String slug = TestDataTemplates.toSlug(name);
+            int postId = createTestCategory(name, slug);
+            categoriesIds.add(postId);
+        }
+        return categoriesIds;
     }
 
     @Step("Получение количества рубрик с name LIKE {pattern}")

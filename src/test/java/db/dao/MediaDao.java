@@ -15,7 +15,7 @@ public class MediaDao {
      * @param id ID медиафайла
      * @return true если медиафайл существует, false если нет
      */
-    public boolean exists(int id) {
+    public boolean fileExists(int id) {
         String sql = "SELECT 1 FROM wp_posts WHERE ID = ? AND post_type = 'attachment'";
 
         return DbExecutor.query(

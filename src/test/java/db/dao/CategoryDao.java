@@ -15,7 +15,7 @@ public class CategoryDao {
      * @param id ID рубрики
      * @return true если рубрика существует, false если нет
      */
-    public boolean exists(int id) {
+    public boolean categoryExists(int id) {
         String sql = "SELECT 1 FROM wp_terms t " +
                 "INNER JOIN wp_term_taxonomy tt ON t.term_id = tt.term_id " +
                 "WHERE t.term_id = ? AND tt.taxonomy = 'category'";

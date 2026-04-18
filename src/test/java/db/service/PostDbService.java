@@ -1,9 +1,11 @@
 package db.service;
 
 import db.dao.PostDao;
+import enums.TestDataTemplates;
 import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -16,7 +18,7 @@ public class PostDbService {
 
     @Step("Проверка существования поста с ID: {id}")
     public boolean isPostExists(int id) {
-        return postDao.exists(id);
+        return postDao.postExists(id);
     }
 
     @Step("Получение title поста с ID: {id}")
@@ -44,6 +46,18 @@ public class PostDbService {
         return postDao.create(title, content, status);
     }
 
+    @Step("Создание {count} тестовых записей со статусом {status}")
+    public List<Integer> createTestPostsWithStatus(int count, String status) {
+        List<Integer> postIds = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            String title = TestDataTemplates.POST_TITLE.getUniqueValue() + "_" + status + "_" + i;
+            String content = TestDataTemplates.POST_CONTENT.getUniqueValue();
+            int postId = createTestPost(title, content, status);
+            postIds.add(postId);
+        }
+        return postIds;
+    }
+
     @Step("Количество постов с title LIKE {pattern}")
     public int getPostsCountByTitleLike(String pattern) {
         return postDao.countByTitleLike(pattern);
@@ -62,6 +76,18 @@ public class PostDbService {
     @Step("Создание поста для автора {authorId}")
     public int createTestPostForAuthor(String title, String content, String status, int authorId) {
         return postDao.createForAuthor(title, content, status, authorId);
+    }
+
+    @Step("Создание {count} тестовых записей со статусом {status} для автора {authorId}")
+    public List<Integer> createTestPostsForAuthor(int count, String status, int authorId) {
+        List<Integer> postIds = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            String title = TestDataTemplates.POST_TITLE.getUniqueValue() + "_" + status + "_" + i;
+            String content = TestDataTemplates.POST_CONTENT.getUniqueValue();
+            int postId = createTestPostForAuthor(title, content, status, authorId);
+            postIds.add(postId);
+        }
+        return postIds;
     }
 
     @Step("Удаление поста из БД по ID: {id}")

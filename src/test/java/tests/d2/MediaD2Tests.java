@@ -22,7 +22,6 @@ public class MediaD2Tests {
 
     MediaClient mediaClient = new MediaClient();
     MediaDbService mediaDbService = new MediaDbService();
-    Checks checks = new Checks();
 
     private final List<Integer> mediaIds = new ArrayList<>();
 
@@ -34,19 +33,20 @@ public class MediaD2Tests {
 
     @Test(description = "TC-MEDIA-01-D2: Получение медиа по ID")
     public void tcMedia01D2_getMediaById() {
-        int mediaId = mediaDbService.createTestAttachment("image/png", "autotest");
+        String mimeType = "image/png";
+        int mediaId = mediaDbService.createTestAttachment(mimeType, "autotest");
         mediaIds.add(mediaId);
 
         Response response = mediaClient.getMediaById(mediaId, AuthType.ADMIN);
-        checks.checkStatusCode(response, 200);
+        Checks.checkStatusCode(response, 200);
 
         String mediaType = response.jsonPath().getString("media_type");
-        checks.checkTrue(mediaType.equals("image") || mediaType.equals("file"),
+        Checks.checkTrue(mediaType.equals("image") || mediaType.equals("file"),
                 "media_type должен быть 'image' или 'file', получено: " + mediaType);
 
-        checks.checkEquals(response.jsonPath().getString("mime_type"), "image/png", "mime_type должен быть image/png");
+        Checks.checkEquals(response.jsonPath().getString("mime_type"), mimeType, "mime_type должен быть image/png");
 
-        checks.checkEquals(mediaDbService.getMediaMimeType(mediaId), "image/png", "MIME type в БД должен совпадать");
-        checks.checkEquals(mediaDbService.getMediaPostType(mediaId), "attachment", "post_type в БД должен быть attachment");
+        Checks.checkEquals(mediaDbService.getMediaMimeType(mediaId), mimeType, "MIME type в БД должен совпадать");
+        Checks.checkEquals(mediaDbService.getMediaPostType(mediaId), "attachment", "post_type в БД должен быть attachment");
     }
 }

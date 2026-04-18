@@ -15,7 +15,7 @@ public class PostDao {
      * @param id ID записи
      * @return true если запись существует, false если нет
      */
-    public boolean exists(int id) {
+    public boolean postExists(int id) {
         String sql = "SELECT 1 FROM wp_posts WHERE ID = ? AND post_type = 'post'";
         return DbExecutor.query(sql, ps -> ps.setInt(1, id), ResultSet::next);
     }
@@ -30,16 +30,6 @@ public class PostDao {
     public String getField(int id, String field) {
         String sql = "SELECT " + field + " FROM wp_posts WHERE ID = ?";
         return DbExecutor.query(sql, ps -> ps.setInt(1, id), rs -> rs.next() ? rs.getString(1) : null);
-    }
-
-    /**
-     * Возвращает общее количество записей типа 'post'.
-     *
-     * @return количество записей
-     */
-    public int countAll() {
-        String sql = "SELECT COUNT(*) FROM wp_posts WHERE post_type = 'post'";
-        return DbExecutor.query(sql, null, rs -> rs.next() ? rs.getInt(1) : 0);
     }
 
     /**

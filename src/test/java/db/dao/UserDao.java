@@ -1,8 +1,10 @@
 package db.dao;
 
 import db.core.DbExecutor;
+import helpers.TestDataGenerator;
 
 import java.sql.ResultSet;
+import java.util.Random;
 
 /**
  * DAO для работы с пользователями WordPress (таблица wp_users).
@@ -15,7 +17,7 @@ public class UserDao {
      * @param id ID пользователя
      * @return true если пользователь существует, false если нет
      */
-    public boolean exists(int id) {
+    public boolean userExists(int id) {
         String sql = "SELECT 1 FROM wp_users WHERE ID = ?";
 
         return DbExecutor.query(
@@ -117,24 +119,12 @@ public class UserDao {
         String finalNicename = nicename != null ? nicename : login;
         String sql = "INSERT INTO wp_users (user_login, user_email, user_pass, user_nicename, user_registered) " +
                 "VALUES (?, ?, MD5(?), ?, NOW())";
-
         return DbExecutor.insert(sql, ps -> {
             ps.setString(1, login);
             ps.setString(2, email);
             ps.setString(3, password);
             ps.setString(4, finalNicename);
         });
-    }
-
-    /**
-     * Создает пользователя с паролем по умолчанию 'test123'.
-     *
-     * @param login логин
-     * @param email email
-     * @return ID созданного пользователя
-     */
-    public int create(String login, String email) {
-        return create(login, email, "test123", login);
     }
 
     /**
@@ -145,8 +135,8 @@ public class UserDao {
      * @param nicename nicename
      * @return ID созданного пользователя
      */
-    public int createWithNicename(String login, String email, String nicename) {
-        return create(login, email, "test123", nicename);
+    public int createWithNicename(String login, String email, String password, String nicename) {
+        return create(login, email, password, nicename);
     }
 
     /**

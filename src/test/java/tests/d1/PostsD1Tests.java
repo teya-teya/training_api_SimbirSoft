@@ -4,12 +4,14 @@ import api.BaseApi.AuthType;
 import checks.Checks;
 import client.PostsClient;
 import db.service.PostDbService;
+import enums.TestDataTemplates;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Story;
 import io.restassured.response.Response;
 import models.PostRequest;
 import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
@@ -24,9 +26,17 @@ public class PostsD1Tests {
 
     PostsClient postsClient = new PostsClient();
     PostDbService postDbService = new PostDbService();
-    Checks checks = new Checks();
 
     private final List<Integer> postIds = new ArrayList<>();
+    private final String statusDraft = "draft";
+    private final String statusPublic = "publish";
+    private String postTitle, postContent;
+    
+    @BeforeMethod
+    public void create() {
+        postTitle = TestDataTemplates.POST_TITLE.getUniqueValue();
+        postContent = TestDataTemplates.POST_CONTENT.getUniqueValue();
+    }
 
     @AfterMethod(groups = {"needsCleanup"})
     public void cleanUp() {
@@ -39,74 +49,74 @@ public class PostsD1Tests {
     @Test(description = "TC-POST-01: Создание записи с минимальными полями", groups = {"needsCleanup"})
     @Story("Создание записи")
     public void tcPost01_createPostMinimalFields() {
-        PostRequest request = new PostRequest("Test Post", "Test content", "draft");
+        PostRequest request = new PostRequest(postTitle, postContent, statusDraft);
 
         Response response = postsClient.createPost(request, AuthType.ADMIN);
 
-        checks.checkStatusCode(response, 201);
-        checks.checkJsonFieldNotNull(response, "id");
-        checks.checkJsonField(response, "title.raw", request.getTitle());
-        checks.checkJsonField(response, "status", request.getStatus());
+        Checks.checkStatusCode(response, 201);
+        Checks.checkJsonFieldNotNull(response, "id");
+        Checks.checkJsonField(response, "title.raw", request.getTitle());
+        Checks.checkJsonField(response, "status", request.getStatus());
 
         int id = response.jsonPath().getInt("id");
         postIds.add(id);
 
-        checks.checkEquals(postDbService.isPostExists(id), true, "Запись должна существовать в БД");
-        checks.checkEquals(postDbService.getPostTitle(id), request.getTitle(), "Заголовок в БД");
-        checks.checkEquals(postDbService.getPostContent(id), request.getContent(), "Содержимое в БД");
-        checks.checkEquals(postDbService.getPostStatus(id), request.getStatus(), "Статус в БД");
-        checks.checkEquals(postDbService.getPostType(id), "post", "Тип записи в БД");
+        Checks.checkEquals(postDbService.isPostExists(id), true, "Запись должна существовать в БД");
+        Checks.checkEquals(postDbService.getPostTitle(id), request.getTitle(), "Заголовок в БД");
+        Checks.checkEquals(postDbService.getPostContent(id), request.getContent(), "Содержимое в БД");
+        Checks.checkEquals(postDbService.getPostStatus(id), request.getStatus(), "Статус в БД");
+        Checks.checkEquals(postDbService.getPostType(id), "post", "Тип записи в БД");
     }
 
     @Test(description = "TC-POST-02: Получение списка записей (GET)", groups = {"needsCleanup"})
     @Story("Получение записей")
     public void tcPost02_getPostsList() {
 
-        PostRequest testRequest = new PostRequest("List Test Post", "Content for list test", "publish");
+        PostRequest testRequest = new PostRequest(postTitle, postContent, statusPublic);
         Response createResponse = postsClient.createPost(testRequest, AuthType.ADMIN);
-        checks.checkStatusCode(createResponse, 201);
+        Checks.checkStatusCode(createResponse, 201);
 
         int id = createResponse.jsonPath().getInt("id");
         postIds.add(id);
 
         Response response = postsClient.getPosts(AuthType.ADMIN);
 
-        checks.checkStatusCode(response, 200);
-        checks.checkListNotEmpty(response, "");
+        Checks.checkStatusCode(response, 200);
+        Checks.checkListNotEmpty(response, "");
 
         List<Integer> ids = response.jsonPath().getList("id");
 
-        checks.checkTrue(ids.contains(id), "Созданный пост должен быть в списке");
+        Checks.checkTrue(ids.contains(id), "Созданный пост должен быть в списке");
     }
 
     @Test(description = "TC-POST-03: Получение одной записи по ID")
     @Story("Получение записей")
     public void tcPost03_getPostById() {
-        PostRequest request = new PostRequest("Test Post for Get", "Content for get", "publish");
+        PostRequest request = new PostRequest(postTitle, postContent, statusPublic);
 
         Response createResponse = postsClient.createPost(request, AuthType.ADMIN);
-        checks.checkStatusCode(createResponse, 201);
+        Checks.checkStatusCode(createResponse, 201);
 
         int id = createResponse.jsonPath().getInt("id");
         postIds.add(id);
 
         Response response = postsClient.getPostById(id, AuthType.ADMIN);
 
-        checks.checkStatusCode(response, 200);
-        checks.checkJsonField(response, "id", id);
-        checks.checkJsonField(response, "title.rendered", request.getTitle());
+        Checks.checkStatusCode(response, 200);
+        Checks.checkJsonField(response, "id", id);
+        Checks.checkJsonField(response, "title.rendered", request.getTitle());
 
-        checks.checkEquals(postDbService.getPostTitle(id), request.getTitle(), "Заголовок в БД");
-        checks.checkEquals(postDbService.getPostContent(id), request.getContent(), "Содержимое в БД");
+        Checks.checkEquals(postDbService.getPostTitle(id), request.getTitle(), "Заголовок в БД");
+        Checks.checkEquals(postDbService.getPostContent(id), request.getContent(), "Содержимое в БД");
     }
 
     @Test(description = "TC-POST-04: Обновление заголовка записи", groups = {"needsCleanup"})
     @Story("Обновление записи")
     public void tcPost04_updatePostTitle() {
-        PostRequest createRequest = new PostRequest("Original Title", "Original content", "draft");
+        PostRequest createRequest = new PostRequest(postTitle, postContent, statusDraft);
 
         Response createResponse = postsClient.createPost(createRequest, AuthType.ADMIN);
-        checks.checkStatusCode(createResponse, 201);
+        Checks.checkStatusCode(createResponse, 201);
 
         int id = createResponse.jsonPath().getInt("id");
         postIds.add(id);
@@ -119,31 +129,31 @@ public class PostsD1Tests {
 
         Response response = postsClient.updatePost(id, updateRequest, AuthType.ADMIN);
 
-        checks.checkStatusCode(response, 200);
-        checks.checkJsonField(response, "title.raw", "Updated Title");
+        Checks.checkStatusCode(response, 200);
+        Checks.checkJsonField(response, "title.raw", "Updated Title");
 
-        checks.checkEquals(postDbService.getPostTitle(id), "Updated Title", "Заголовок в БД должен обновиться");
-        checks.checkEquals(postDbService.getPostContent(id), oldContent, "Содержимое не должно измениться");
-        checks.checkEquals(postDbService.getPostStatus(id), oldStatus, "Статус не должен измениться");
+        Checks.checkEquals(postDbService.getPostTitle(id), "Updated Title", "Заголовок в БД должен обновиться");
+        Checks.checkEquals(postDbService.getPostContent(id), oldContent, "Содержимое не должно измениться");
+        Checks.checkEquals(postDbService.getPostStatus(id), oldStatus, "Статус не должен измениться");
     }
 
     @Test(description = "TC-POST-05: Полное удаление записи")
     @Story("Удаление записи")
     public void tcPost05_deletePostForce() {
-        PostRequest request = new PostRequest("Post to Delete", "This will be deleted", "draft");
+        PostRequest request = new PostRequest(postTitle, postContent, statusDraft);
 
         Response createResponse = postsClient.createPost(request, AuthType.ADMIN);
-        checks.checkStatusCode(createResponse, 201);
+        Checks.checkStatusCode(createResponse, 201);
 
         postIds.add(createResponse.jsonPath().getInt("id"));
 
-        checks.checkEquals(postDbService.isPostExists(postIds.get(0)), true, "Запись должна существовать до удаления");
+        Checks.checkEquals(postDbService.isPostExists(postIds.get(0)), true, "Запись должна существовать до удаления");
 
         Response response = postsClient.deletePost(postIds.get(0), AuthType.ADMIN);
 
-        checks.checkStatusCode(response, 200);
-        checks.checkDeletedTrue(response);
-        checks.checkEquals(postDbService.isPostExists(postIds.get(0)), false, "Запись не должна существовать после удаления");
+        Checks.checkStatusCode(response, 200);
+        Checks.checkDeletedTrue(response);
+        Checks.checkEquals(postDbService.isPostExists(postIds.get(0)), false, "Запись не должна существовать после удаления");
     }
 
     // ========== НЕГАТИВНЫЕ ТЕСТЫ ==========
@@ -152,85 +162,85 @@ public class PostsD1Tests {
     @Story("Создание записи")
     public void tcPostN01_createPostWithoutTitle() {
         PostRequest request = new PostRequest();
-        request.setContent("No title content");
-        request.setStatus("draft");
+        request.setContent(postContent);
+        request.setStatus(statusDraft);
 
         Response response = postsClient.createPost(request, AuthType.ADMIN);
 
-        checks.checkStatusCode(response, 201);
+        Checks.checkStatusCode(response, 201);
 
         int id = response.jsonPath().getInt("id");
         postIds.add(id);
 
-        checks.checkJsonFieldNullOrEmpty(response, "title.raw");
+        Checks.checkJsonFieldNullOrEmpty(response, "title.raw");
 
-        checks.checkEquals(postDbService.isPostExists(id), true, "Запись должна существовать в БД");
+        Checks.checkEquals(postDbService.isPostExists(id), true, "Запись должна существовать в БД");
 
         String dbTitle = postDbService.getPostTitle(id);
-        checks.checkEquals(dbTitle == null || dbTitle.isEmpty(), true,
+        Checks.checkEquals(dbTitle == null || dbTitle.isEmpty(), true,
                 "Заголовок в БД должен быть null или пустым");
     }
 
     @Test(description = "TC-POST-N02: Создание записи без авторизации")
     @Story("Авторизация")
     public void tcPostN02_createPostUnauthorized() {
-        PostRequest request = new PostRequest("Unauthorized Post", "Should not be created", "draft");
+        PostRequest request = new PostRequest(postTitle, postContent, statusDraft);
 
         Response response = postsClient.createPost(request, AuthType.NONE);
 
-        checks.checkStatusCode(response, 401);
+        Checks.checkStatusCode(response, 401);
     }
 
     @Test(description = "TC-POST-N03: Получение несуществующей записи")
     @Story("Получение записей")
     public void tcPostN03_getNonExistentPost() {
         Response response = postsClient.getPostById(999999, AuthType.ADMIN);
-        checks.checkStatusCode(response, 404);
+        Checks.checkStatusCode(response, 404);
     }
 
     @Test(description = "TC-POST-N04: Обновление несуществующей записи")
     @Story("Обновление записи")
     public void tcPostN04_updateNonExistentPost() {
         PostRequest request = new PostRequest();
-        request.setTitle("Updated Title");
+        request.setTitle(postTitle);
 
         Response response = postsClient.updatePost(999999, request, AuthType.ADMIN);
-        checks.checkStatusCode(response, 404);
+        Checks.checkStatusCode(response, 404);
     }
 
     @Test(description = "TC-POST-N05: Удаление несуществующей записи")
     @Story("Удаление записи")
     public void tcPostN05_deleteNonExistentPost() {
         Response response = postsClient.deletePost(999999, AuthType.ADMIN);
-        checks.checkStatusCode(response, 404);
+        Checks.checkStatusCode(response, 404);
     }
 
     @Test(description = "TC-POST-N06: Создание поста без прав")
     @Story("Авторизация")
     public void tcPostN06_createPostWithoutRights() {
-        PostRequest request = new PostRequest("No Rights Post", "Content", "publish");
+        PostRequest request = new PostRequest(postTitle, postContent, statusPublic);
 
         Response response = postsClient.createPost(request, AuthType.CUSTOM, "subscriber_user", "subscriber_pass");
 
-        checks.checkStatusCode(response, 403);
+        Checks.checkStatusCode(response, 403);
     }
 
     @Test(description = "TC-POST-N07: Удаление чужого поста", groups = {"needsCleanup"})
     @Story("Авторизация")
     public void tcPostN07_deleteSomeoneElsePost() {
-        PostRequest request = new PostRequest("Admin Post", "Created by admin", "draft");
+        PostRequest request = new PostRequest(postTitle, postContent, statusDraft);
 
         Response createResponse = postsClient.createPost(request, AuthType.ADMIN);
-        checks.checkStatusCode(createResponse, 201);
+        Checks.checkStatusCode(createResponse, 201);
 
         int id = createResponse.jsonPath().getInt("id");
         postIds.add(id);
 
-        checks.checkEquals(postDbService.isPostExists(id), true, "Запись должна существовать");
+        Checks.checkEquals(postDbService.isPostExists(id), true, "Запись должна существовать");
 
         Response response = postsClient.deletePost(id, AuthType.CUSTOM, "subscriber_user", "subscriber_pass");
 
-        checks.checkStatusCode(response, 403);
-        checks.checkEquals(postDbService.isPostExists(id), true, "Запись должна остаться в БД");
+        Checks.checkStatusCode(response, 403);
+        Checks.checkEquals(postDbService.isPostExists(id), true, "Запись должна остаться в БД");
     }
 }

@@ -4,12 +4,15 @@ import api.BaseApi.AuthType;
 import checks.Checks;
 import client.MediaClient;
 import db.service.MediaDbService;
+import enums.TestDataTemplates;
 import helpers.FileHelper;
+import helpers.TestDataGenerator;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Story;
 import io.restassured.response.Response;
 import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -25,12 +28,19 @@ public class MediaD1Tests {
 
     MediaClient mediaClient = new MediaClient();
     MediaDbService mediaDbService = new MediaDbService();
-    Checks checks = new Checks();
 
     private final List<Integer> mediaIds = new ArrayList<>();
 
     private static final String TEST_IMAGE_PATH = "src/test/resources/test.png";
     private static final String TEST_EXE_PATH = "src/test/resources/test.exe";
+
+    private String mediaTitle, mediaAltText;
+
+    @BeforeMethod
+    public void create() {
+        mediaTitle = TestDataTemplates.MEDIA_TITLE.getUniqueValue();
+        mediaAltText = TestDataTemplates.MEDIA_ALT_TEXT.getUniqueValue();
+    }
 
     @AfterMethod(groups = {"needsCleanup"})
     public void cleanUp() {
@@ -47,17 +57,17 @@ public class MediaD1Tests {
 
         Response response = mediaClient.uploadMedia(file, AuthType.ADMIN);
 
-        checks.checkStatusCode(response, 201);
-        checks.checkJsonFieldNotNull(response, "id");
-        checks.checkJsonFieldNotNull(response, "source_url");
-        checks.checkJsonField(response, "media_type", "image");
+        Checks.checkStatusCode(response, 201);
+        Checks.checkJsonFieldNotNull(response, "id");
+        Checks.checkJsonFieldNotNull(response, "source_url");
+        Checks.checkJsonField(response, "media_type", "image");
 
         int id = response.jsonPath().getInt("id");
         mediaIds.add(id);
 
-        checks.checkEquals(mediaDbService.isMediaExists(id), true, "Медиафайл должен существовать в БД");
-        checks.checkEquals(mediaDbService.hasMetadata(id), true, "Метаданные _wp_attachment_metadata должны присутствовать");
-        checks.checkTrue(mediaDbService.getMimeType(id).startsWith("image/"), "MIME тип должен начинаться с image/");
+        Checks.checkEquals(mediaDbService.isMediaExists(id), true, "Медиафайл должен существовать в БД");
+        Checks.checkEquals(mediaDbService.hasMetadata(id), true, "Метаданные _wp_attachment_metadata должны присутствовать");
+        Checks.checkTrue(mediaDbService.getMimeType(id).startsWith("image/"), "MIME тип должен начинаться с image/");
     }
 
     @Test(description = "TC-MEDIA-02: Получение информации о медиафайле по ID", groups = {"needsCleanup"})
@@ -66,7 +76,7 @@ public class MediaD1Tests {
         File file = FileHelper.getTestFile(TEST_IMAGE_PATH);
 
         Response createResponse = mediaClient.uploadMedia(file, AuthType.ADMIN);
-        checks.checkStatusCode(createResponse, 201);
+        Checks.checkStatusCode(createResponse, 201);
         int id = createResponse.jsonPath().getInt("id");
         mediaIds.add(id);
 
@@ -74,11 +84,11 @@ public class MediaD1Tests {
 
         Response response = mediaClient.getMediaById(id, AuthType.ADMIN);
 
-        checks.checkStatusCode(response, 200);
-        checks.checkJsonField(response, "id", id);
-        checks.checkJsonField(response, "mime_type", expectedMimeType);
+        Checks.checkStatusCode(response, 200);
+        Checks.checkJsonField(response, "id", id);
+        Checks.checkJsonField(response, "mime_type", expectedMimeType);
 
-        checks.checkEquals(mediaDbService.getMimeType(id), expectedMimeType, "MIME тип в БД должен совпадать");
+        Checks.checkEquals(mediaDbService.getMimeType(id), expectedMimeType, "MIME тип в БД должен совпадать");
     }
 
     @Test(description = "TC-MEDIA-03: Обновление alt_text у изображения", groups = {"needsCleanup"})
@@ -87,16 +97,16 @@ public class MediaD1Tests {
         File file = FileHelper.getTestFile(TEST_IMAGE_PATH);
 
         Response createResponse = mediaClient.uploadMedia(file, AuthType.ADMIN);
-        checks.checkStatusCode(createResponse, 201);
+        Checks.checkStatusCode(createResponse, 201);
         int id = createResponse.jsonPath().getInt("id");
         mediaIds.add(id);
 
-        Response response = mediaClient.updateAltText(id, "New alt text", AuthType.ADMIN);
+        Response response = mediaClient.updateAltText(id, mediaAltText, AuthType.ADMIN);
 
-        checks.checkStatusCode(response, 200);
-        checks.checkJsonField(response, "alt_text", "New alt text");
+        Checks.checkStatusCode(response, 200);
+        Checks.checkJsonField(response, "alt_text", mediaAltText);
 
-        checks.checkEquals(mediaDbService.getAltText(id), "New alt text", "alt_text в БД должен обновиться");
+        Checks.checkEquals(mediaDbService.getAltText(id), mediaAltText, "alt_text в БД должен обновиться");
     }
 
     @Test(description = "TC-MEDIA-04: Обновление заголовка (title) медиафайла", groups = {"needsCleanup"})
@@ -105,16 +115,16 @@ public class MediaD1Tests {
         File file = FileHelper.getTestFile(TEST_IMAGE_PATH);
 
         Response createResponse = mediaClient.uploadMedia(file, AuthType.ADMIN);
-        checks.checkStatusCode(createResponse, 201);
+        Checks.checkStatusCode(createResponse, 201);
         int id = createResponse.jsonPath().getInt("id");
         mediaIds.add(id);
 
-        Response response = mediaClient.updateTitle(id, "New Title", AuthType.ADMIN);
+        Response response = mediaClient.updateTitle(id, mediaTitle, AuthType.ADMIN);
 
-        checks.checkStatusCode(response, 200);
-        checks.checkJsonField(response, "title.raw", "New Title");
+        Checks.checkStatusCode(response, 200);
+        Checks.checkJsonField(response, "title.raw", mediaTitle);
 
-        checks.checkEquals(mediaDbService.getMediaTitle(id), "New Title", "Заголовок в БД должен обновиться");
+        Checks.checkEquals(mediaDbService.getMediaTitle(id), mediaTitle, "Заголовок в БД должен обновиться");
     }
 
     @Test(description = "TC-MEDIA-05: Удаление медиафайла (force=true)", groups = {"needsCleanup"})
@@ -123,18 +133,18 @@ public class MediaD1Tests {
         File file = FileHelper.getTestFile(TEST_IMAGE_PATH);
 
         Response createResponse = mediaClient.uploadMedia(file, AuthType.ADMIN);
-        checks.checkStatusCode(createResponse, 201);
+        Checks.checkStatusCode(createResponse, 201);
         int id = createResponse.jsonPath().getInt("id");
         mediaIds.add(id);
 
-        checks.checkEquals(mediaDbService.isMediaExists(id), true, "Медиафайл должен существовать до удаления");
+        Checks.checkEquals(mediaDbService.isMediaExists(id), true, "Медиафайл должен существовать до удаления");
 
         Response response = mediaClient.deleteMedia(id, AuthType.ADMIN);
 
-        checks.checkStatusCode(response, 200);
-        checks.checkDeletedTrue(response);
+        Checks.checkStatusCode(response, 200);
+        Checks.checkDeletedTrue(response);
 
-        checks.checkEquals(mediaDbService.isMediaExists(id), false, "Медиафайл не должен существовать после удаления");
+        Checks.checkEquals(mediaDbService.isMediaExists(id), false, "Медиафайл не должен существовать после удаления");
     }
 
     // ========== НЕГАТИВНЫЕ ТЕСТЫ ==========
@@ -144,7 +154,7 @@ public class MediaD1Tests {
     public void tcMediaN01_uploadWithoutFile() {
         Response response = mediaClient.uploadMediaWithoutFile(AuthType.ADMIN);
 
-        checks.checkStatusCode(response, 400);
+        Checks.checkStatusCode(response, 400);
     }
 
     @Test(description = "TC-MEDIA-N02: Загрузка неавторизованным пользователем")
@@ -154,7 +164,7 @@ public class MediaD1Tests {
 
         Response response = mediaClient.uploadMedia(file, AuthType.NONE);
 
-        checks.checkStatusCode(response, 401);
+        Checks.checkStatusCode(response, 401);
     }
 
     @Test(description = "TC-MEDIA-N03: Загрузка файла недопустимого типа (.exe)")
@@ -164,13 +174,13 @@ public class MediaD1Tests {
 
         Response response = mediaClient.uploadMedia(file, AuthType.ADMIN);
 
-        checks.checkStatusCode(response, 415);
+        Checks.checkStatusCode(response, 415);
     }
 
     @Test(description = "TC-MEDIA-N04: Получение несуществующего медиафайла")
     @Story("Получение медиафайла")
     public void tcMediaN04_getNonExistentMedia() {
         Response response = mediaClient.getMediaById(999999, AuthType.ADMIN);
-        checks.checkStatusCode(response, 404);
+        Checks.checkStatusCode(response, 404);
     }
 }

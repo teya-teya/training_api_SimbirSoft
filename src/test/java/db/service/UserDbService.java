@@ -1,9 +1,12 @@
 package db.service;
 
 import db.dao.UserDao;
+import enums.TestDataTemplates;
+import helpers.TestDataGenerator;
 import io.qameta.allure.Step;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -16,7 +19,7 @@ public class UserDbService {
 
     @Step("Проверка существования пользователя в БД по ID: {id}")
     public boolean isUserExists(int id) {
-        return userDao.exists(id);
+        return userDao.userExists(id);
     }
 
     @Step("Получение email пользователя из БД по ID: {id}")
@@ -45,13 +48,27 @@ public class UserDbService {
     }
 
     @Step("Создание тестового пользователя в БД")
-    public int createTestUser(String login, String email) {
-        return userDao.create(login, email);
+    public int createTestUser(String login, String email, String password) {
+        String slug = TestDataTemplates.toSlug(login);
+        return userDao.create(login, email, password, slug);
+    }
+
+    @Step("Создание {count} тестовых пользователей ")
+    public List<Integer> createTestUsers(int count) {
+        List<Integer> userIds = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            String login = TestDataTemplates.USER_USERNAME.getUniqueValue() + "_" + i;
+            String email = i + "_" + TestDataGenerator.getRandomEmail();
+            String password = TestDataGenerator.getRandomPassword();
+            int userId = createTestUser(login, email, password);
+            userIds.add(userId);
+        }
+        return userIds;
     }
 
     @Step("Создание тестового пользователя с nicename")
-    public int createTestUserWithNicename(String login, String email, String nicename) {
-        return userDao.createWithNicename(login, email, nicename);
+    public int createTestUserWithNicename(String login, String email, String password, String nicename) {
+        return userDao.createWithNicename(login, email, password, nicename);
     }
 
     @Step("Получение автора поста {postId}")

@@ -1,10 +1,14 @@
 package client;
 
 import api.BaseApi;
+import enums.TestDataTemplates;
 import io.qameta.allure.Step;
 import io.restassured.response.Response;
 import lombok.extern.slf4j.Slf4j;
 import models.PostRequest;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Клиент для работы с API записей WordPress (endpoint: /wp/v2/posts)
@@ -65,15 +69,38 @@ public class PostsClient extends BaseApi {
         return response;
     }
 
-    @Step("Создание записи с указанием автора (raw JSON)")
-    public Response createPostRaw(String body, AuthType authType, String... credentials) {
+    @Step("Создание записи для автора {authorId}")
+    public Response createPostForAuthor(String title, String content, String status, int authorId, AuthType authType, String... credentials) {
+        String postBody = String.format(
+                "{\"title\":\"%s\",\"content\":\"%s\",\"status\":\"%s\",\"author\":%d}",
+                title, content, status, authorId);
+
         Response response = getRequest(authType, credentials)
-                .body(body)
+                .body(postBody)
                 .post();
 
-        Integer id = response.jsonPath().get("id");
-        log.info("Создание записи с автором: статус={}, id={}", response.statusCode(), id != null ? id : "null");
+        log.info("Создание записи для автора ID={}: статус={}, id={}", authorId, response.statusCode(), response.jsonPath().get("id"));
         return response;
+    }
+
+    @Step("Создание {count} записей для автора {authorId}")
+    public List<Integer> createPostsForAuthor(int count, int authorId,  String status, AuthType authType, String... credentials) {
+        List<Integer> createdIds = new ArrayList<>();
+
+        for (int i = 0; i < count; i++) {
+            String title = TestDataTemplates.POST_TITLE.getUniqueValue() + i;
+            String content = TestDataTemplates.POST_CONTENT.getUniqueValue();
+
+            Response response = createPostForAuthor(title, content, status, authorId, authType, credentials);
+
+            if (response.getStatusCode() == 201) {
+                int id = response.jsonPath().getInt("id");
+                createdIds.add(id);
+            }
+        }
+
+        log.info("Создано {} записей для автора ID={}", createdIds.size(), authorId);
+        return createdIds;
     }
 
     @Step("Получение записей по статусу: {status}")

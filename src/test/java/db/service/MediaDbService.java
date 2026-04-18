@@ -16,7 +16,7 @@ public class MediaDbService {
 
     @Step("Проверка существования медиафайла в БД по ID: {id}")
     public boolean isMediaExists(int id) {
-        return mediaDao.exists(id);
+        return mediaDao.fileExists(id);
     }
 
     @Step("Получение mime_type медиафайла из БД по ID: {id}")
