@@ -31,6 +31,7 @@ public class PostsD2Tests {
     private final List<Integer> postIds = new ArrayList<>();
     private final String statusPublic = "publish";
     private String postTitle, postContent, username, email, password;
+    private int authorId;
 
     @BeforeMethod
     public void create() {
@@ -46,7 +47,7 @@ public class PostsD2Tests {
         postDbService.deletePostsHard(postIds);
         postIds.clear();
 
-
+        userDbService.deleteUserHard(authorId);
     }
 
     @Test(description = "TC-POST-01-D2: Получение списка записей")
@@ -104,22 +105,17 @@ public class PostsD2Tests {
 
     @Test(description = "TC-POST-04-D2: Фильтр по автору")
     public void tcPost04D2_filterByAuthor() {
-        int authorId = 0;
-        try {
-            authorId = userDbService.createTestUser(username, email, password);
+        authorId = userDbService.createTestUser(username, email, password);
 
-            postIds.addAll(postDbService.createTestPostsForAuthor(2, statusPublic, authorId));
+        postIds.addAll(postDbService.createTestPostsForAuthor(2, statusPublic, authorId));
 
-            Response response = postsClient.getPostsByAuthor(authorId, AuthType.ADMIN);
-            Checks.checkStatusCode(response, 200);
+        Response response = postsClient.getPostsByAuthor(authorId, AuthType.ADMIN);
+        Checks.checkStatusCode(response, 200);
 
-            List<Integer> authors = response.jsonPath().getList("author");
-            Checks.checkAllMatch(authors, authorId, "Все посты принадлежат автору");
+        List<Integer> authors = response.jsonPath().getList("author");
+        Checks.checkAllMatch(authors, authorId, "Все посты принадлежат автору");
 
-            int dbCount = postDbService.getPostsCountByAuthorAndTitleLike(authorId, TestDataTemplates.POST_TITLE.getValue() + "%");
-            Checks.checkTrue(dbCount >= 2, "В БД должно быть минимум 2 поста автора");
-        } finally {
-            userDbService.deleteUserHard(authorId);
-        }
+        int dbCount = postDbService.getPostsCountByAuthorAndTitleLike(authorId, TestDataTemplates.POST_TITLE.getValue() + "%");
+        Checks.checkTrue(dbCount >= 2, "В БД должно быть минимум 2 поста автора");
     }
 }
