@@ -1,7 +1,7 @@
 package client;
 
 import api.BaseApi;
-import checks.Checks;
+import enums.TestDataTemplates;
 import io.qameta.allure.Step;
 import io.restassured.response.Response;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +15,6 @@ import java.util.List;
  */
 @Slf4j
 public class PostsClient extends BaseApi {
-    Checks checks = new Checks();
 
     @Override
     protected String getBasePath() {
@@ -70,32 +69,57 @@ public class PostsClient extends BaseApi {
         return response;
     }
 
-    @Step("Создание записи с указанием автора (raw JSON)")
-    public Response createPostRaw(String body, AuthType authType, String... credentials) {
+    @Step("Создание записи для автора {authorId}")
+    public Response createPostForAuthor(String title, String content, String status, int authorId, AuthType authType, String... credentials) {
+        String postBody = String.format(
+                "{\"title\":\"%s\",\"content\":\"%s\",\"status\":\"%s\",\"author\":%d}",
+                title, content, status, authorId);
+
         Response response = getRequest(authType, credentials)
-                .body(body)
+                .body(postBody)
                 .post();
 
-        Integer id = response.jsonPath().get("id");
-        log.info("Создание записи с автором: статус={}, id={}", response.statusCode(), id != null ? id : "null");
+        log.info("Создание записи для автора ID={}: статус={}, id={}", authorId, response.statusCode(), response.jsonPath().get("id"));
         return response;
     }
 
-    @Step("Создание  {count} записей с указанием автора (raw JSON)")
-    public List<Integer> createPostsForUser(int userId, int count) {
-        List<Integer> postIds = new ArrayList<>();
+    @Step("Создание {count} записей для автора {authorId}")
+    public List<Integer> createPostsForAuthor(int count, int authorId,  String status, AuthType authType, String... credentials) {
+        List<Integer> createdIds = new ArrayList<>();
 
         for (int i = 0; i < count; i++) {
-            String postBody = String.format(
-                    "{\"title\":\"Test Post %d\",\"content\":\"Content %d\",\"status\":\"publish\",\"author\":%d}",
-                    i, i, userId);
+            String title = TestDataTemplates.POST_TITLE.getUniqueValue() + i;
+            String content = TestDataTemplates.POST_CONTENT.getUniqueValue();
 
-            Response response = createPostRaw(postBody, AuthType.ADMIN);
-            checks.checkStatusCode(response, 201);
+            Response response = createPostForAuthor(title, content, status, authorId, authType, credentials);
 
-            postIds.add(response.jsonPath().getInt("id"));
+            if (response.getStatusCode() == 201) {
+                int id = response.jsonPath().getInt("id");
+                createdIds.add(id);
+            }
         }
 
-        return postIds;
+        log.info("Создано {} записей для автора ID={}", createdIds.size(), authorId);
+        return createdIds;
+    }
+
+    @Step("Получение записей по статусу: {status}")
+    public Response getPostsByStatus(String status, AuthType authType, String... credentials) {
+        Response response = getRequest(authType, credentials)
+                .queryParam("status", status)
+                .get();
+
+        log.info("Получение записей по статусу={}: статус={}, количество={}", status, response.statusCode(), response.jsonPath().getList("").size());
+        return response;
+    }
+
+    @Step("Получение записей по автору: {authorId}")
+    public Response getPostsByAuthor(int authorId, AuthType authType, String... credentials) {
+        Response response = getRequest(authType, credentials)
+                .queryParam("author", authorId)
+                .get();
+
+        log.info("Получение записей по автору={}: статус={}, количество={}", authorId, response.statusCode(), response.jsonPath().getList("").size());
+        return response;
     }
 }
